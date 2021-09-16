@@ -1,0 +1,2 @@
+= Scala Parser
+A simple general purpose lexer/parser, inspired by link:https://github.com/scala/scala-parser-combinators[Scala Parser Combinators]

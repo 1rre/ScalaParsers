@@ -1,6 +1,6 @@
 import es.tmoor.parsing._
 
-object Main extends App {
+object Test extends App {
   def variable: Parser[String] = (
     (PFParser(_.isLower) ~ variable) #> {case (a,b) => a +: b} |
     (PFParser(_.isLower) #> (_.toString))
