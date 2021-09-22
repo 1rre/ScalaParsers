@@ -1,6 +1,7 @@
 import es.tmoor.parsing._
 import Preprocessor._
 import CParser.Expression
+
 object CParser extends Parsers[PPToken] {
   trait Expression
   case class Identifier(text: String) extends Expression
@@ -26,7 +27,20 @@ object CParser extends Parsers[PPToken] {
       | primaryString
       | (`(` /> expression <\ `)`)
   )
+  sealed class PFTail(fun: Expression => Expression) {
+    def apply(expr: Expression) = fun(expr)
+  }
+  case class PFOffsetTail(offset: Expression) extends PFTail(expr => PFOffset(expr, offset))
+  case class PFOffset(value: Expression, offset: Expression) extends Expression
+  def postfixOffsetTail: Parser[PFTail] = 
+    (`[` /> expression <\ `]`) #> (PFOffsetTail(_))
+  def pfTail: Parser[PFTail] = (
+    postfixOffsetTail
+  )
+  def postfixExpression: Parser[Expression] = (
+    primaryExpression ~ pfTail.* #> {case (a,b) => b.foldLeft(a)((acc,v) => v(acc))}
+  )
   def expression: Parser[Expression] = (
-    primaryExpression
+    postfixExpression
   )
 }

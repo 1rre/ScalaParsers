@@ -5,7 +5,7 @@ object Main extends App {
 
   val input = (
 """
- "14232314"
+ "14232314"[5][5]
 """)
   val ppR =
     Preprocessor.parse(input) match
@@ -20,6 +20,10 @@ object Main extends App {
         Nil
       case Preprocessor.Match(idx, result) =>
         result.filterNot(_ == WhiteSpace)
+
+
+  println(ppR)
+  println
   val cpR = CParser.expression.parseAll(ppR)
   println(cpR)
 

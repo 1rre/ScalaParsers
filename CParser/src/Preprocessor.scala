@@ -7,12 +7,12 @@ object Preprocessor extends Parsers[Char] {
   case class PPCharConst(s: String) extends PPToken
   case class PPString(s: String) extends PPToken
   class PPKeyword(s: String) extends PPToken {
-    def parser: Parser[PPToken] =
-      s.map(_ #> (_.toString)).reduce(_ ~ _ #> { case (a, b) => a + b }) >> this
+    val parser: Parser[PPToken] =
+      s.map(_ #> (_.toString)).reduce[Parser[_]](_ ~ _) >> this
   }
   class PPSymbol(s: String) extends PPToken {
-    def parser: Parser[PPToken] =
-      s.map(_ #> (_.toString)).reduce(_ ~ _ #> { case (a, b) => a + b }) >> this
+    val parser: Parser[PPToken] =
+      s.map(_ #> (_.toString)).reduce[Parser[_]](_ ~ _) >> this
   }
   case object PPAuto extends PPKeyword("auto")
   case object PPDouble extends PPKeyword("double")
