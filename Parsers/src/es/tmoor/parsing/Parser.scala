@@ -1,5 +1,7 @@
 package es.tmoor.parsing
 
+import scala.reflect.ClassTag
+
 trait Parsers[Elem] {
   sealed abstract trait ParseResult[T] {
     def get: T
@@ -58,13 +60,14 @@ trait Parsers[Elem] {
       (this ~ this.+ #> {case (a,b) => a +: b})
       | (this #> (Seq(_)))
     )
-    def +(sep: Parser[_]): Parser[Seq[T]] = (
-      ((this <\ sep) ~ this.+ #> {case (a,b) => a +: b})
-      | (this #> (Seq(_)))
-    )
+    def +(sep: => Parser[_]): Parser[Seq[T]] = (this <\ sep).* ~ this #> {case (a,b) => a :+ b}
+    def +(sep: Elem): Parser[Seq[T]] = (this <\ sep).* ~ this #> {case (a,b) => a :+ b}
     def * : Parser[Seq[T]] = this.+.? #> (_.getOrElse(Nil))
-    def *(sep: Parser[_]): Parser[Seq[T]] = this.+(sep).? #> (_.getOrElse(Nil))
+    def *(sep: => Parser[_]): Parser[Seq[T]] = this.+(sep).? #> (_.getOrElse(Nil))
+    def *(sep: Elem): Parser[Seq[T]] = this.+(sep).? #> (_.getOrElse(Nil))
   }
+
+  class TypeParser[T: ClassTag] extends PFParser({case x: T => true})
 
   class OptionalParser[T](parseIn: Parser[T]) extends Parser[Option[T]] {
     def parse(input: Seq[Elem], from: Int): ParseResult[Option[T]] =

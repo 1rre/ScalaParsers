@@ -1,11 +1,12 @@
-import Preprocessor.WhiteSpace
+import c89.preprocessor.Preprocessor
+import c89.parser.expression.ExpressionParsers
 //import CParser._
 
 object Main extends App {
 
   val input = (
 """
- "14232314"[5][5]
+ "14232314"[5][5].run(1,2,3,4,5) -> hello()
 """)
   val ppR =
     Preprocessor.parse(input) match
@@ -19,12 +20,12 @@ object Main extends App {
         System.exit(0)
         Nil
       case Preprocessor.Match(idx, result) =>
-        result.filterNot(_ == WhiteSpace)
-
+        result.filterNot(_ == Preprocessor.WhiteSpace)
 
   println(ppR)
   println
-  val cpR = CParser.expression.parseAll(ppR)
+  val cp = new ExpressionParsers
+  val cpR = cp.expression.parseAll(ppR)
   println(cpR)
 
 }
