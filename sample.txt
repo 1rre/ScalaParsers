@@ -1,0 +1,3 @@
+fun main (
+  copy r0 obj[1234]#32i
+)

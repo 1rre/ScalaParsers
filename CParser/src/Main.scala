@@ -6,7 +6,7 @@ object Main extends App {
 
   val input = (
 """
- "14232314"[5][5].run(1,2,3,4,5) -> hello()
+ "\"14232314\""[5][5].run(1,2,3,4,5) -> hello(++x)++
 """)
   val ppR =
     Preprocessor.parse(input) match

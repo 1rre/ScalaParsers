@@ -1,9 +1,10 @@
 package c89.parser
 package expression
 import c89.preprocessor.Preprocessor._
+import CParsers._
 
-class ExpressionParsers extends PostfixExpressionParsers {
+class ExpressionParsers extends UnaryExpressionParsers {
   def expression: Parser[Expression] = (
-    postfixExpression
+    unaryExpression
   )
 }

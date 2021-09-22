@@ -1,0 +1,52 @@
+= Intermediate Representation Specification
+:toc: auto
+:sectnums:
+:partnums:
+
+== Tokens
+
+=== Program
+Function ~ [Program]? +
+Data ~ [Program]?
+
+=== Function
+"fun" ~ Identifier ~ "(" ~ [Expression]* ~ ")" +
+"fun" ~ Identifier ~ [Expression]* ~ "end"
+
+=== Data
+"data" ~ Identifier ~ "(" ~ [Value]* ~ ")" +
+"data" ~ Identifier ~ [Value]* ~ "end"
+
+=== Identifier
+Character Identifier +
+Character
+
+=== Expression
+Call +
+Function +
+BIF
+
+=== Value
+Constant + 
+Constant ~ "#" ~ Type
+
+=== Character
+"a" to "z" +
+"A" to "Z" +
+"0" to "9" +
+"_" +
+"$"
+
+=== Call
+"call" ~ Identifier +
+"call" ~ "/" ~ Integer ~ Identifier
+
+=== BIF
+"copy" ~ Register ~ Value +
+"copy" ~ Register ~ Register +
+"test" ~ Register ~ [Expression]* ~ "otherwise" ~ [Expression]* ~ "end" +
+"test" ~ Register ~ "(" ~ [Expression]* ~ ")" ~ "(" ~ [Expression]* ~ ")"
+
+=== Constant
+Integer ~ ["#" ~ Type]? +
+Float ~ ["#" ~ Type]?
