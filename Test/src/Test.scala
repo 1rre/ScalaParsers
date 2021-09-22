@@ -1,6 +1,6 @@
 import es.tmoor.parsing._
 
-object Test extends App {
+object Test extends App with Parsers[Char] {
   def variable: Parser[String] = (
     (PFParser(_.isLower) ~ variable) #> {case (a,b) => a +: b} |
     (PFParser(_.isLower) #> (_.toString))
@@ -10,7 +10,7 @@ object Test extends App {
     (PFParser(_.isDigit) #> (_.toString))
   )
   def number: Parser[Int] = (
-    (CharParser('-') ~ digitSeq #> (-_._2.toInt)) |
+    (ElemParser('-') ~ digitSeq #> (-_._2.toInt)) |
     (digitSeq #> (_.toInt))
   )
   type Operand = String | Int | Operation
@@ -24,26 +24,26 @@ object Test extends App {
   class Mul(left: Operand, right: Operand) extends Operation(left, right) {
     override def toString = s"($left * $right)"
   }
-  def ws: Parser[Char] = CharParser(' ')
+  def ws: Parser[Char] = ElemParser(' ')
 
 
   def exprBracket: Parser[Operand] =
-    CharParser('(') ~ expression ~ CharParser(')')
+    ElemParser('(') ~ expression ~ ElemParser(')')
       #> (_._1._2)
   def exprLiteral: Parser[Operand] =
     variable.asInstanceOf[Parser[Operand]]
     | number.asInstanceOf[Parser[Operand]]
     | exprBracket
   def exprMul: Parser[Operand] = 
-    (exprLiteral ~ ws ~ CharParser('*') ~ ws ~ exprMul
+    (exprLiteral ~ ws ~ ElemParser('*') ~ ws ~ exprMul
       #> {case ((((a,_),_),_),b) => Mul(a,b)})
     | exprLiteral
   def exprSub: Parser[Operand] =
-    (exprMul ~ ws ~ CharParser('-') ~ ws ~ exprAdd
+    (exprMul ~ ws ~ ElemParser('-') ~ ws ~ exprAdd
       #> {case ((((a,_),_),_),b) => Sub(a,b)})
     | exprMul
   def exprAdd: Parser[Operand] =
-    (exprSub ~ ws ~ CharParser('+') ~ ws ~ exprAdd
+    (exprSub ~ ws ~ ElemParser('+') ~ ws ~ exprAdd
       #> {case ((((a,_),_),_),b) => Add(a,b)})
     | exprSub
   def expression: Parser[Operand] = exprAdd

@@ -6,7 +6,9 @@ object Parsers extends ScalaModule {
 
 object Test extends ScalaModule {
   def scalaVersion = "3.0.1"
-  def moduleDeps = Seq(
-    Parsers
-  )
+  def moduleDeps = Seq(Parsers)
+}
+object CParser extends ScalaModule {
+  def scalaVersion = "3.0.1"
+  def moduleDeps = Seq(Parsers)
 }
