@@ -1,3 +1,12 @@
-fun main (
-  copy r0 obj[1234]#32i
-)
+int x = 412;
+int* y = &x;
+int** z = &y;
+*y = 12;
+**z = 15;
+return x;
+
+r0 <- 412#i32
+s0 <- r0
+r0 <- @[s0]
+
+
