@@ -43,3 +43,5 @@ case object U8 extends Size8 with UInt with AsmType
 
 case class Obj(members: Seq[Type]) extends Type(members.map(_.size).sum)
 case class Ptr(level: Int, ptrType: Type) extends Type(32)
+case object Empty extends Type(0)
+case class FunType(args: Seq[Type], returns: Type) extends Type(0)

@@ -1,8 +1,7 @@
 package ir
 
 import scala.util.parsing.combinator.RegexParsers
-import types._
-import value._
+import ir.types._
 import asm.Mips
 
 object Parser extends RegexParsers {
@@ -20,49 +19,50 @@ object Parser extends RegexParsers {
       | ("i8" ^^^ S8) | ("i16" ^^^ S16) | ("i32" ^^^ S32) | ("i64" ^^^ S64)
       | ("f32" ^^^ F32) | ("f64" ^^^ F64)
   )
-  def objType: Parser[Type] = (
+  def objType: Parser[Type] =
     "obj[" ~> repsep(validType, ",") <~ "]" ^^ (Obj(_))
+  def objValue: Parser[Literal] =
+    "obj[" ~> repsep(constant, ",") <~ "]" ^^ (rs => Literal(rs, Obj(rs.map(_.ofType))))
+  def funType: Parser[FunType] = (
+    (("fun[" ~> validType <~ "]") ||| ("fun" ^^^ Empty)) ~ validType.* ^^ {
+      case a ~ b => FunType(b, a)
+    } 
   )
-  def objValue: Parser[Constant] = (
-    "obj[" ~> repsep(constant, ",") <~ "]" ^^ (rs => Constant(rs, Obj(rs.map(_.typeOf))))
-  )
-  def validType: Parser[Type] = constType ||| objType ||| ptrType
-  def constant = (((constType ~ ("[" ~> (float ||| integer))) ^^ {
-    case t ~ a => Constant(a, t)
+  def validType: Parser[Type] = constType ||| objType ||| ptrType ||| funType
+  def literal: Parser[Literal] = (((constType ~ ("[" ~> (float ||| integer))) ^^ {
+    case t ~ a => Literal(a, t)
   }) <~ "]")  ||| objValue
+  def anonFun: Parser[AnonFun] = ("(" ~> expr.* <~ ")") ^^ (AnonFun(_))
+  def constant = literal ||| ("@[" ~> name <~ "]") ||| anonFun
 
-  val funs = collection.mutable.Buffer[String]()
+  val names = collection.mutable.Map[String, Type]()
 
-  def identifier = "[a-zA-Z_$0-9]+".r ^^ identity
+  def identifier = "[a-zA-Z_][_a-zA-Z0-9]*".r ^^ identity
 
-  def call: Parser[Expression] = callLocal ||| callExt ||| callInt
-  def callLocal: Parser[Call] = "call" ~> identifier ^^ (CallUnresolved(_))
-  def callExt: Parser[Call] = "call" ~ "/" ~> integer ~ identifier ^^ { case a ~ b =>
-    FunCall(ExternalFun(b, a.toInt))
-  }
+  def call: Parser[Expression] = callName ||| callInternal ||| callRef
+  def callName: Parser[Call] = name ^^ (CallByName(_))
+  def callRef: Parser[Call] = ref ^^ (CallByRef(_))
   def internalFun =
-    "+" ^^^ FunCall(Add) | "-" ^^^ FunCall(Add) | "*" ^^^ FunCall(Add) | "/" ^^^ FunCall(Add)
-  def callInt: Parser[FunCall] = "call" ~> internalFun
+    "+" ^^^ CallLib(Add) | "-" ^^^ CallLib(Add) | "*" ^^^ CallLib(Add) | "/" ^^^ CallLib(Add)
+  def callInternal: Parser[Call] = internalFun
 
-  def value: Parser[Value] = addr ||| validDest ||| constant
+  def value: Parser[Value] = addr ||| validDest ||| literal
   def validDest = ref ||| register
   def register = local ||| stack
   def stack = "s[0-9]+".r ^^ (s => Stack(s.tail.toInt))
   def local = "r[0-9]+".r ^^ (s => Local(s.tail.toInt))
+  def name = identifier ^^ (id => new Name(id, names(id)))
   def ref = "@[" ~> local <~ "]" ^^ (r => Reference(r.id))
-  def addr = "@[" ~> stack <~ "]" ^^ (r => Address(r.id))
+  def addr = ("@[" ~> (stack ||| name) <~ "]" ^^ (r => Address(r)))
   def copyToMemory: Parser[Copy] = ((stack ||| ref) <~ "<=") ~ local ^^ { case a ~ b => Copy(a, b) }
   def copyToReg: Parser[Copy] =
     (local <~ "<=") ~ value ^^ { case a ~ b => Copy(a, b) }
   def copy: Parser[Copy] = copyToMemory ||| copyToReg
-  def localFun: Parser[Fun] = "fun" ~> identifier ~ ("(" ~> expr.* <~ ")") ^^ { case a ~ b =>
-    UnoptLocalFun(a, b)
+  def decl = validType ~ identifier ~ constant.? ^^ {
+    case a ~ b ~ c => Decl(b,a,c)
   }
-  def pubArgType: Parser[Type] = validType 
-  def publishedFun: Parser[Fun] = "pub" ~> identifier ~ validType.* ~ ("(" ~> expr.* <~ ")") ^^ {
-    case a ~ b ~ c => UnoptPublishedFun(a, b, c)
-  }
-  def fun: Parser[Fun] = localFun ||| publishedFun
+  def ext = "ext" ~> decl ^^ (decl => Ext(decl.name, decl.ofType))
+  def global = phrase((ext ||| decl).*)
   def expr: Parser[Expression] = copy | call
 
 }

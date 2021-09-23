@@ -1,34 +1,49 @@
 import util.parsing.input.CharSequenceReader
 import collection.mutable.Buffer
-import ir.types._
 import mips._
-import ir.Optimiser
+import ir._
+import ir.types._
 
 object Main extends App {
   val inStr = (
 """
-pub main @(4)[i32] (
+ext fun[i32] i32 i32 f
+@[fun[i32] i32 i32] fPtr @[f]
+ext obj[i32, obj[i32, i8, u8, obj[f64, @[fun[i32]]]]] x
+fun @(4)[i32] main (
   r1 <= i32[1]
   r2 <= i32[0]
   s0 <= r2
   r1 <= @[s0]
-  call addThree
+  r2 <= @[addThree]
+  @[r2]
   @[r1] <= r0
   r0 <= s0
+  f
 )
-fun addThree (
-  call +
+fun[i32] i32 i32 i32 addThree (
+  +
   r1 <= r2
-  call +
+  +
 )
 """
   )
   val input = new CharSequenceReader(inStr)
-  val parseRes = (ir.Parser.fun.*)(input).getOrElse(Nil)
+  val parseRes = ir.Parser.global(input)
   println(parseRes)
-  val optimiser = new Optimiser(parseRes)
-  val optRes = optimiser.optimise()
-  for (gs <- optRes) {
-    println(gs)
+  println()
+  //val optimiser = new Optimiser(parseRes.getOrElse(Nil))
+  //val optRes = optimiser.optimise()
+  parseRes.getOrElse(Nil).foreach {
+    case decl: Decl => {
+      println(s"Decl: ${decl.name}")
+      println(s"Type: ${decl.ofType}")
+      println()
+    }
+    case ext: Ext => {
+      println(s"External: ${ext.name}")
+      println(s"Type: ${ext.ofType}")
+      println()
+    }
   }
 }
