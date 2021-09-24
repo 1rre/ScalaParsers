@@ -1,11 +1,13 @@
 package ir.types
 
 import asm.AsmSchema
+import ir.Literal
 
 sealed abstract class Type(val size: Int) {
   def sizeSuffix: String = ""
   def typeSuffix: String = ""
   def suffix: String = s"$sizeSuffix$typeSuffix"
+  //def toLiteral[T](value: T): Literal
 }
 sealed trait AsmType extends Type
 sealed abstract class Size64 extends Type(64) {
@@ -28,6 +30,7 @@ sealed abstract trait FP extends Type {
   override def typeSuffix: String = "."
 }
 
+case object Dynamic extends Type(0)
 case object F64 extends Size64 with FP with AsmType
 case object F32 extends Size32 with FP with AsmType {
   override def sizeSuffix: String = "s"
@@ -41,7 +44,7 @@ case object U32 extends Size32 with UInt with AsmType
 case object U16 extends Size16 with UInt with AsmType
 case object U8 extends Size8 with UInt with AsmType
 
-case class Obj(members: Seq[Type]) extends Type(members.map(_.size).sum)
-case class Ptr(level: Int, ptrType: Type) extends Type(32)
+case class ObjType(members: Seq[Type]) extends Type(members.map(_.size).sum)
+case class PtrType(level: Int, ptrType: Type) extends Type(32)
 case object Empty extends Type(0)
 case class FunType(args: Seq[Type], returns: Type) extends Type(0)

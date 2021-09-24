@@ -12,7 +12,7 @@ object Parser extends RegexParsers {
   def float = """[0-9]+\.[0-9]+""".r ^^ (_.toDouble)
 
   def ptrType: Parser[Type] = "@" ~> (("(" ~> ("[0-9]+".r ^^ (_.toInt)) <~ ")").? ^^ (_.getOrElse(1))) ~ ("[" ~> validType <~ "]") ^^ {
-    case i~t => Ptr(i, t)
+    case i~t => PtrType(i, t)
   }
   def constType: Parser[Type] = (
     ("u8" ^^^ U8) | ("u16" ^^^ U16) | ("u32" ^^^ U32) | ("u64" ^^^ U64)
@@ -20,9 +20,9 @@ object Parser extends RegexParsers {
       | ("f32" ^^^ F32) | ("f64" ^^^ F64)
   )
   def objType: Parser[Type] =
-    "obj[" ~> repsep(validType, ",") <~ "]" ^^ (Obj(_))
+    "obj[" ~> repsep(validType, ",") <~ "]" ^^ (ObjType(_))
   def objValue: Parser[Literal] =
-    "obj[" ~> repsep(constant, ",") <~ "]" ^^ (rs => Literal(rs, Obj(rs.map(_.ofType))))
+    "obj[" ~> repsep(constant, ",") <~ "]" ^^ (rs => Literal(rs, ObjType(rs.map(_.ofType))))
   def funType: Parser[FunType] = (
     (("fun[" ~> validType <~ "]") ||| ("fun" ^^^ Empty)) ~ validType.* ^^ {
       case a ~ b => FunType(b, a)
@@ -30,20 +30,34 @@ object Parser extends RegexParsers {
   )
   def validType: Parser[Type] = constType ||| objType ||| ptrType ||| funType
   def literal: Parser[Literal] = (((constType ~ ("[" ~> (float ||| integer))) ^^ {
-    case t ~ a => Literal(a, t)
+    case t ~ a => new Literal(a, t)
   }) <~ "]")  ||| objValue
-  def anonFun: Parser[AnonFun] = ("(" ~> expr.* <~ ")") ^^ (AnonFun(_))
-  def constant = literal ||| ("@[" ~> name <~ "]") ||| anonFun
+  def depFun = ("{" ~> expr.* <~ "}") ^^ (DependentFun(_))
+  def indepFun = ("(" ~> expr.* <~ ")") ^^ (IndependentFun(_))
+  def constant = literal ||| ("@[" ~> name <~ "]") ||| indepFun
+  def fun = indepFun ||| depFun
 
   val names = collection.mutable.Map[String, Type]()
 
   def identifier = "[a-zA-Z_][_a-zA-Z0-9]*".r ^^ identity
 
+  def test = "test" ~> local ~ (fun|||name) ~ ("otherwise" ~> (fun|||name)).? ^^ {
+    case a~b~c => Test(a,b,c.getOrElse(InlinedFun(Nil)))
+  }
+
   def call: Parser[Expression] = callName ||| callInternal ||| callRef
   def callName: Parser[Call] = name ^^ (CallByName(_))
   def callRef: Parser[Call] = ref ^^ (CallByRef(_))
-  def internalFun =
-    "+" ^^^ CallLib(Add) | "-" ^^^ CallLib(Add) | "*" ^^^ CallLib(Add) | "/" ^^^ CallLib(Add)
+  def internalFun = (
+    "+" ^^^ Add
+    | "-" ^^^ Sub
+    | "*" ^^^ Add
+    | "/" ^^^ Add
+  ) ~ (validType.?) ^^ {
+    case op ~ Some(t) => CallLib(op, t)
+    case op ~ None => CallLib(op, Dynamic)
+  }
+    
   def callInternal: Parser[Call] = internalFun
 
   def value: Parser[Value] = addr ||| validDest ||| literal
@@ -63,6 +77,6 @@ object Parser extends RegexParsers {
   }
   def ext = "ext" ~> decl ^^ (decl => Ext(decl.name, decl.ofType))
   def global = phrase((ext ||| decl).*)
-  def expr: Parser[Expression] = copy | call
+  def expr: Parser[Expression] = copy ||| call ||| test
 
 }

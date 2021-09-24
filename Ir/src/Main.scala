@@ -10,7 +10,7 @@ object Main extends App {
 ext fun[i32] i32 i32 f
 @[fun[i32] i32 i32] fPtr @[f]
 ext obj[i32, obj[i32, i8, u8, obj[f64, @[fun[i32]]]]] x
-fun @(4)[i32] main (
+fun[i32] @(4)[i32] main (
   r1 <= i32[1]
   r2 <= i32[0]
   s0 <= r2
